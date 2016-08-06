@@ -2,7 +2,7 @@
 # g++ -std=c++11  extract_background.cpp -o app `pkg-config --cflags --libs opencv`
 
 CC = g++
-CFLAGS =-Wall -std=c++11
+LFLAGS =-Wall -std=c++11
 CVFLAGS=$(shell pkg-config --cflags --libs opencv)
 
 CPP_FILES := $(wildcard src/*.cpp)
@@ -14,7 +14,7 @@ app:
 	mkdir -p app
 
 app/%: src/%.cpp
-	$(CC) $(CFLAGS) $(CVFLAGS) -O3 -o $@ $<
+	$(CC) -O3 -o $@ $< $(LFLAGS) $(CVFLAGS) 
 
 clean:
 	rm -rf app
