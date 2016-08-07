@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <string.h>
+#include <algorithm>
 
 // The recipe of GIMP/Artistic Filters/Photocopy:
 // http://www.imagemagick.org/discourse-server/viewtopic.php?t=14441
@@ -12,7 +13,7 @@
 // * Ramp = amount of relative intensity difference before total black
 
 cv::Mat
-performGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, int treshold, int ramp ) {
+performGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float treshold, float ramp ) {
    int blurRadius = maskRadius / 3;
 
    cv::Mat gray( image.size(), CV_8U);
@@ -21,7 +22,31 @@ performGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, int treshold, 
    cv::Mat boxFiltered( gray.size(), gray.type() );
    cv::blur( gray, boxFiltered, cv::Size(2 * blurRadius + 1, 2 * blurRadius + 1) ); 
 
-   return boxFiltered;
+   cv::Mat relativeDiff( gray.size(), CV_32F);
+   cv::divide(gray, boxFiltered, relativeDiff);
+
+   // creating the result per-element, according to the recipe
+   cv::Mat result( gray.size(), CV_8U );
+   boxFiltered.copyTo( result );
+
+   for( int y=0; y < result.rows; y++) {
+      for( int x=0; x < result.cols; x++) {
+         unsigned char& elem = result.at<unsigned char>( y, x );
+         float& reldiff = relativeDiff.at<float>( y, x );
+         if ( reldiff < treshold ) {
+            float result = static_cast<float>(elem) * ( ramp - std::min( ramp, ( treshold - reldiff ) ) );
+            if ( result >= 255.0 ) {
+               elem = 255;
+            } else {
+               elem = static_cast<unsigned char>( result );
+            }
+         } else {
+            elem = 255;
+         }
+      }
+   }
+
+   return result;
 }
 
 int main( int argc, char** argv )
@@ -39,7 +64,7 @@ int main( int argc, char** argv )
       return -1;
    }
 
-   cv::Mat photocopy = performGimpPhotocopyFilter( image, 20, 100, 5 );
+   cv::Mat photocopy = performGimpPhotocopyFilter( image, 20, 128, 128 );
 
    cv::namedWindow( "Original", cv::WINDOW_NORMAL );
    cv::namedWindow( "Photocopy", cv::WINDOW_NORMAL );
