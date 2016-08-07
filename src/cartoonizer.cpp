@@ -62,14 +62,24 @@ performColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    cv::cvtColor( image, lab, CV_BGR2Lab );
 
    cv::Mat floatLab;
-   lab.convertTo( floatLab, CV_32FC1 );
+   lab.convertTo( floatLab, CV_32FC3 );
 
    int K = colors;
 
    cv::Mat labels;
    cv::Mat centers;
-   cv::Mat points = floatLab.reshape(1,0);
+   cv::Mat points = floatLab.reshape(3, 1);
+   std::cout << points.cols << std::endl;
+   std::cout << points.rows << std::endl;
    cv::kmeans(points, K, labels, cv::TermCriteria( cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centers);
+   std::cout << centers.cols << std::endl;
+   std::cout << centers.rows << std::endl;
+//   cv::Mat resultFloatLab = centers.reshape( image.cols, 3 );
+//   cv::Mat resultLab;
+//   resultFloatLab.convertTo( resultLab, CV_8UC1 );
+//   cv::Mat result( image.size(),  CV_8UC3 );
+//   cv::cvtColor( resultLab, result, CV_Lab2BGR );
+
    return lab;
 }
 
