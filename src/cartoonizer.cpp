@@ -49,6 +49,19 @@ performGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float treshold
    return pixelIntensity;
 }
 
+// http://www.pyimagesearch.com/2014/07/07/color-quantization-opencv-using-k-means-clustering/
+cv::Mat
+performColorQuantization( const cv::Mat& image, int blurRadius ) 
+{
+   cv::Mat gaussianBlur( image.size(), image.type() );
+   cv::GaussianBlur( image, gaussianBlur, cv::Size(2 * blurRadius + 1, 2 * blurRadius + 1), 0, 0 ); 
+  
+   cv::Mat lab( image.size(),  CV_8UC3 );
+   cv::cvtColor( image, lab, CV_BGR2Lab );
+
+   return lab;
+}
+
 int main( int argc, char** argv )
 {
    if( argc != 2) {
@@ -65,11 +78,14 @@ int main( int argc, char** argv )
    }
 
    cv::Mat photocopy = performGimpPhotocopyFilter( image, 20, 1, 2 );
+   cv::Mat quantized = performColorQuantization( image, 20 );
 
    cv::namedWindow( "Original", cv::WINDOW_NORMAL );
    cv::namedWindow( "Photocopy", cv::WINDOW_NORMAL );
+   cv::namedWindow( "Quantized", cv::WINDOW_NORMAL );
    cv::imshow( "Original", image );
    cv::imshow( "Photocopy", photocopy );
+   cv::imshow( "Quantized", quantized );
 
    cv::waitKey(0);
    return 0;
