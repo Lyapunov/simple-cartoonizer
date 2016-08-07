@@ -58,29 +58,38 @@ performColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    cv::Mat gaussianBlur( image.size(), image.type() );
    cv::GaussianBlur( image, gaussianBlur, cv::Size(2 * blurRadius + 1, 2 * blurRadius + 1), 0, 0 ); 
   
-   cv::Mat lab( image.size(),  CV_8UC3 );
-   cv::cvtColor( image, lab, CV_BGR2Lab );
+   cv::Mat lab( gaussianBlur.size(),  CV_8UC3 );
+   cv::cvtColor( gaussianBlur, lab, CV_BGR2Lab );
 
    cv::Mat floatLab;
    lab.convertTo( floatLab, CV_32FC3 );
 
    int K = colors;
 
-   cv::Mat labels;
-   cv::Mat centers;
+   cv::Mat labelsFlat;
+   cv::Mat centersFloatLabC1;
    cv::Mat points = floatLab.reshape(3, 1);
-   std::cout << points.cols << std::endl;
-   std::cout << points.rows << std::endl;
-   cv::kmeans(points, K, labels, cv::TermCriteria( cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centers);
-   std::cout << centers.cols << std::endl;
-   std::cout << centers.rows << std::endl;
-//   cv::Mat resultFloatLab = centers.reshape( image.cols, 3 );
-//   cv::Mat resultLab;
-//   resultFloatLab.convertTo( resultLab, CV_8UC1 );
-//   cv::Mat result( image.size(),  CV_8UC3 );
-//   cv::cvtColor( resultLab, result, CV_Lab2BGR );
+   // TermCriteria has the default values from the doc
+   cv::kmeans(points, K, labelsFlat, cv::TermCriteria( cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centersFloatLabC1);
+   cv::Mat centersFloatLabC3 = centersFloatLabC1.reshape( 3, colors );
 
-   return lab;
+   // Clumsy way to reconstruct the image from indexed format
+   cv::Mat labels = labelsFlat.reshape(1, image.rows );
+   cv::Mat centersLab;
+   centersFloatLabC3.convertTo( centersLab, CV_8UC3 );
+   cv::Mat centers;
+   cv::cvtColor( centersLab, centers, CV_Lab2BGR );
+   cv::Mat result( image.size(), CV_8UC3 );
+   for( int y=0; y < result.rows; y++) {
+      for( int x=0; x < result.cols; x++) {
+         unsigned char& label = labelsFlat.at<unsigned char>( x +  y * result.cols, 0 );
+         result.at<cv::Vec3b>( y, x )[0] = centers.at<cv::Vec3b>( label, 0 )[0];
+         result.at<cv::Vec3b>( y, x )[1] = centers.at<cv::Vec3b>( label, 0 )[1];
+         result.at<cv::Vec3b>( y, x )[2] = centers.at<cv::Vec3b>( label, 0 )[2];
+      }
+   }
+
+   return result;
 }
 
 int main( int argc, char** argv )
@@ -99,7 +108,7 @@ int main( int argc, char** argv )
    }
 
    cv::Mat photocopy = performGimpPhotocopyFilter( image, 20, 1, 2 );
-   cv::Mat quantized = performColorQuantization( image, 20, 8 );
+   cv::Mat quantized = performColorQuantization( image, 20, 15 );
 
    cv::namedWindow( "Original", cv::WINDOW_NORMAL );
    cv::namedWindow( "Photocopy", cv::WINDOW_NORMAL );
