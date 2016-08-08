@@ -48,6 +48,9 @@ performGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float treshold
 
 cv::Mat
 performBinaryGimpPhotocopyMaskFilter( const cv::Mat& image, int maskRadius, float C, float ramp ) {
+   if ( maskRadius < 0 ) {
+      maskRadius = 0; 
+   }
    int blurRadius = maskRadius / 3;
 
    cv::Mat gray( image.size(), CV_8U);
@@ -128,7 +131,7 @@ cv::Mat
 performCartoonization( const cv::Mat& image, int photocopyRadius, float photocopyC, float photocopyR, int colorRadius, int numberOfColors )
 {
    cv::Mat photocopyMask = performBinaryGimpPhotocopyMaskFilter( image, photocopyRadius, photocopyC, photocopyR );
-   cv::Mat result        = performColorQuantization( image, colorRadius, numberOfColors );
+   cv::Mat result        = performColorQuantization( image, colorRadius, numberOfColors - 1 );
 
    result.setTo( cv::Scalar( 0, 0, 0), photocopyMask ); 
    return result;
@@ -136,11 +139,25 @@ performCartoonization( const cv::Mat& image, int photocopyRadius, float photocop
 
 int main( int argc, char** argv )
 {
-   if( argc != 2) {
-      std::cout <<"USAGE: " << std::string(basename(argv[0])) << " <filename>" << std::endl;
+   const std::string progName = std::string(basename(argv[0]));
+   if( argc != 8) {
+      std::cout << "USAGE  : " << progName << " <input_file> <output_file> <photocopy_radius> <photocopy_C> <photocopy_R> <color_radius> <number_of_colors>" << std::endl;
+      std::cout << "EXAMPLE: " << progName << " testimage.jpg cartoon.png 8 0.5 0.28 8 45" << std::endl;
+      return -1;
+   }
+   int   photocopyRad = atoi( argv[3] );
+   float photocopyC   = atof( argv[4] );
+   float photocopyR   = atof( argv[5] );
+   int   colorRad     = atoi( argv[6] );
+   int   colorNum     = atoi( argv[7] );
+
+   // Checking values
+   if ( colorNum < 4 ) {
+      std::cerr << "Error: Number of colors must be at least 4." << std::endl;
       return -1;
    }
 
+   // Reading the image
    cv::Mat image;
    image = cv::imread(argv[1], CV_LOAD_IMAGE_COLOR);
 
@@ -149,13 +166,17 @@ int main( int argc, char** argv )
       return -1;
    }
 
-   cv::Mat cartoon = performCartoonization( image, 8, 0.5, 0.3, 20, 15 );
+   // Cartoonize!
+   cv::Mat cartoon = performCartoonization( image, photocopyRad, photocopyC, photocopyR, colorRad, colorNum );
 
-   cv::namedWindow( "Original", cv::WINDOW_NORMAL );
+   // Saving the result
+   cv::imwrite( argv[2], cartoon );
+
+/*   cv::namedWindow( "Original", cv::WINDOW_NORMAL );
    cv::namedWindow( "Cartoon", cv::WINDOW_NORMAL );
    cv::imshow( "Original", image );
    cv::imshow( "Cartoon", cartoon );
 
-   cv::waitKey(0);
+   cv::waitKey(0);*/
    return 0;
 }
