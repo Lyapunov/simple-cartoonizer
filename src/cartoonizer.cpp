@@ -125,10 +125,10 @@ performColorQuantization( const cv::Mat& image, int blurRadius, int colors )
 
 // Facade for cartonization
 cv::Mat
-performCartoonization( const cv::Mat& image, int photocopyRadius, float photocopyC, float photocopyR, int colorRadius, int colors )
+performCartoonization( const cv::Mat& image, int photocopyRadius, float photocopyC, float photocopyR, int colorRadius, int numberOfColors )
 {
-   cv::Mat photocopyMask = performBinaryGimpPhotocopyMaskFilter( image, photocopyRadius, 0.5, 0.3 );
-   cv::Mat result        = performColorQuantization( image, 20, 15 );
+   cv::Mat photocopyMask = performBinaryGimpPhotocopyMaskFilter( image, photocopyRadius, photocopyC, photocopyR );
+   cv::Mat result        = performColorQuantization( image, colorRadius, numberOfColors );
 
    result.setTo( cv::Scalar( 0, 0, 0), photocopyMask ); 
    return result;
