@@ -47,7 +47,7 @@ performGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float treshold
 }
 
 cv::Mat
-performBinaryGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float treshold, float ramp ) {
+performBinaryGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float C, float ramp ) {
    int blurRadius = maskRadius / 3;
 
    cv::Mat gray( image.size(), CV_8U);
@@ -67,9 +67,9 @@ performBinaryGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float tr
       for( int x=0; x < pixelIntensity.cols; x++) {
          unsigned char& elem = pixelIntensity.at<unsigned char>( y, x );
          float reldiff = static_cast<float>( avgBlur.at<unsigned char>( y, x ) ) / avgMask.at<unsigned char>( y, x );
-         if ( reldiff < treshold ) {
+         if ( reldiff < C + ramp ) {
             // float pixelIntensity = static_cast<float>(elem) * ( ramp - std::min( ramp, ( treshold - reldiff ) ) ) / ramp;
-            float pixelIntensity = static_cast<float>(elem) * std::max( 0.0f, static_cast<float>( ramp + reldiff  - treshold ) / ramp );
+            float pixelIntensity = static_cast<float>(elem) * std::max( 0.0f, static_cast<float>( reldiff - C ) / ramp );
             elem = pixelIntensity < 128 ? 0 : 255;
          } else {
             elem = 255;
@@ -138,7 +138,7 @@ int main( int argc, char** argv )
       return -1;
    }
 
-   cv::Mat photocopy = performBinaryGimpPhotocopyFilter( image, 20, 0.8, 0.3 );
+   cv::Mat photocopy = performBinaryGimpPhotocopyFilter( image, 8, 0.5, 0.3 );
    cv::Mat quantized = performColorQuantization( image, 20, 15 );
 
    cv::namedWindow( "Original", cv::WINDOW_NORMAL );
