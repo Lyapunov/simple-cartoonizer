@@ -34,12 +34,9 @@ performGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float treshold
          unsigned char& elem = pixelIntensity.at<unsigned char>( y, x );
          float reldiff = static_cast<float>( avgBlur.at<unsigned char>( y, x ) ) / avgMask.at<unsigned char>( y, x );
          if ( reldiff < treshold ) {
-            float pixelIntensity = static_cast<float>(elem) * ( ramp - std::min( ramp, ( treshold - reldiff ) ) ) / ramp;
-            if ( pixelIntensity >= 255.0 ) {
-               elem = 255;
-            } else {
-               elem = static_cast<unsigned char>( pixelIntensity );
-            }
+            // float pixelIntensity = static_cast<float>(elem) * ( ramp - std::min( ramp, ( treshold - reldiff ) ) ) / ramp;
+            float pixelIntensity = static_cast<float>(elem) * std::max( 0.0f, 1.0f - static_cast<float>( treshold - reldiff ) / ramp );
+            elem = static_cast<unsigned char>( pixelIntensity );
          } else {
             elem = 255;
          }
@@ -107,7 +104,7 @@ int main( int argc, char** argv )
       return -1;
    }
 
-   cv::Mat photocopy = performGimpPhotocopyFilter( image, 20, 1, 2 );
+   cv::Mat photocopy = performGimpPhotocopyFilter( image, 20, 1, 0.5 );
    cv::Mat quantized = performColorQuantization( image, 20, 15 );
 
    cv::namedWindow( "Original", cv::WINDOW_NORMAL );
