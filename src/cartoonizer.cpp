@@ -47,7 +47,7 @@ performGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float treshold
 }
 
 cv::Mat
-performBinaryGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float C, float ramp ) {
+performBinaryGimpPhotocopyMaskFilter( const cv::Mat& image, int maskRadius, float C, float ramp ) {
    int blurRadius = maskRadius / 3;
 
    cv::Mat gray( image.size(), CV_8U);
@@ -70,9 +70,9 @@ performBinaryGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float C,
          if ( reldiff < C + ramp ) {
             // float pixelIntensity = static_cast<float>(elem) * ( ramp - std::min( ramp, ( treshold - reldiff ) ) ) / ramp;
             float pixelIntensity = static_cast<float>(elem) * std::max( 0.0f, static_cast<float>( reldiff - C ) / ramp );
-            elem = pixelIntensity < 128 ? 0 : 255;
+            elem = pixelIntensity < 128 ? 255 : 0;
          } else {
-            elem = 255;
+            elem = 0;
          }
       }
    }
@@ -123,6 +123,17 @@ performColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    return result;
 }
 
+// Facade for cartonization
+cv::Mat
+performCartoonization( const cv::Mat& image, int photocopyRadius, float photocopyC, float photocopyR, int colorRadius, int colors )
+{
+   cv::Mat photocopyMask = performBinaryGimpPhotocopyMaskFilter( image, photocopyRadius, 0.5, 0.3 );
+   cv::Mat result        = performColorQuantization( image, 20, 15 );
+
+   result.setTo( cv::Scalar( 0, 0, 0), photocopyMask ); 
+   return result;
+}
+
 int main( int argc, char** argv )
 {
    if( argc != 2) {
@@ -138,15 +149,12 @@ int main( int argc, char** argv )
       return -1;
    }
 
-   cv::Mat photocopy = performBinaryGimpPhotocopyFilter( image, 8, 0.5, 0.3 );
-   cv::Mat quantized = performColorQuantization( image, 20, 15 );
+   cv::Mat cartoon = performCartoonization( image, 8, 0.5, 0.3, 20, 15 );
 
    cv::namedWindow( "Original", cv::WINDOW_NORMAL );
-   cv::namedWindow( "Photocopy", cv::WINDOW_NORMAL );
-   cv::namedWindow( "Quantized", cv::WINDOW_NORMAL );
+   cv::namedWindow( "Cartoon", cv::WINDOW_NORMAL );
    cv::imshow( "Original", image );
-   cv::imshow( "Photocopy", photocopy );
-   cv::imshow( "Quantized", quantized );
+   cv::imshow( "Cartoon", cartoon );
 
    cv::waitKey(0);
    return 0;
