@@ -35,8 +35,42 @@ performGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float treshold
          float reldiff = static_cast<float>( avgBlur.at<unsigned char>( y, x ) ) / avgMask.at<unsigned char>( y, x );
          if ( reldiff < treshold ) {
             // float pixelIntensity = static_cast<float>(elem) * ( ramp - std::min( ramp, ( treshold - reldiff ) ) ) / ramp;
-            float pixelIntensity = static_cast<float>(elem) * std::max( 0.0f, 1.0f - static_cast<float>( treshold - reldiff ) / ramp );
+            float pixelIntensity = static_cast<float>(elem) * std::max( 0.0f, static_cast<float>( ramp + reldiff - treshold ) / ramp );
             elem = static_cast<unsigned char>( pixelIntensity );
+         } else {
+            elem = 255;
+         }
+      }
+   }
+
+   return pixelIntensity;
+}
+
+cv::Mat
+performBinaryGimpPhotocopyFilter( const cv::Mat& image, int maskRadius, float treshold, float ramp ) {
+   int blurRadius = maskRadius / 3;
+
+   cv::Mat gray( image.size(), CV_8U);
+   cv::cvtColor( image, gray, CV_BGR2GRAY );
+
+   cv::Mat avgBlur( gray.size(), gray.type() );
+   cv::blur( gray, avgBlur, cv::Size(2 * blurRadius + 1, 2 * blurRadius + 1) ); 
+
+   cv::Mat avgMask( gray.size(), gray.type() );
+   cv::blur( gray, avgMask, cv::Size(2 * maskRadius + 1, 2 * maskRadius + 1) ); 
+
+   // creating the result per-element, according to the recipe
+   cv::Mat pixelIntensity( gray.size(), CV_8U );
+   avgBlur.copyTo( pixelIntensity );
+
+   for( int y=0; y < pixelIntensity.rows; y++) {
+      for( int x=0; x < pixelIntensity.cols; x++) {
+         unsigned char& elem = pixelIntensity.at<unsigned char>( y, x );
+         float reldiff = static_cast<float>( avgBlur.at<unsigned char>( y, x ) ) / avgMask.at<unsigned char>( y, x );
+         if ( reldiff < treshold ) {
+            // float pixelIntensity = static_cast<float>(elem) * ( ramp - std::min( ramp, ( treshold - reldiff ) ) ) / ramp;
+            float pixelIntensity = static_cast<float>(elem) * std::max( 0.0f, static_cast<float>( ramp + reldiff  - treshold ) / ramp );
+            elem = pixelIntensity < 128 ? 0 : 255;
          } else {
             elem = 255;
          }
@@ -104,7 +138,7 @@ int main( int argc, char** argv )
       return -1;
    }
 
-   cv::Mat photocopy = performGimpPhotocopyFilter( image, 20, 1, 0.5 );
+   cv::Mat photocopy = performBinaryGimpPhotocopyFilter( image, 20, 0.8, 0.3 );
    cv::Mat quantized = performColorQuantization( image, 20, 15 );
 
    cv::namedWindow( "Original", cv::WINDOW_NORMAL );
