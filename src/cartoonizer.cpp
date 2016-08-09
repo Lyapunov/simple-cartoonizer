@@ -139,7 +139,6 @@ performFastColorQuantization( const cv::Mat& image, int blurRadius, int colors )
 
    // Determining centersLab and centers
    double zoom = sqrt( ( static_cast<double>( image.rows ) * image.cols ) / 250000 );
-   std::cout << zoom << std::endl;
 
    cv::Mat floatLab;
    if ( zoom > 1.0 ) {
