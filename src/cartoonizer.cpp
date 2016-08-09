@@ -2,6 +2,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 
 #include <iostream>
+#include <math.h>
 #include <string>
 #include <string.h>
 #include <algorithm>
@@ -119,7 +120,7 @@ performColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    for( int y=0; y < result.rows; y++) {
       for( int x=0; x < result.cols; x++) {
          unsigned char& label = labelsFlat.at<unsigned char>( x +  y * result.cols, 0 );
-         result.at<cv::Vec3b>( y, x ) = centers.at<cv::Vec3b>( bestCol, 0 );
+         result.at<cv::Vec3b>( y, x ) = centers.at<cv::Vec3b>( label, 0 );
       }
    }
 
@@ -136,8 +137,18 @@ performFastColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    cv::Mat imageLab( gaussianBlur.size(),  CV_8UC3 );
    cv::cvtColor( gaussianBlur, imageLab, CV_BGR2Lab );
 
+   // Determining centersLab and centers
+   double zoom = sqrt( ( static_cast<double>( image.rows ) * image.cols ) / 250000 );
+   std::cout << zoom << std::endl;
+
    cv::Mat floatLab;
-   imageLab.convertTo( floatLab, CV_32FC3 );
+   if ( zoom > 1.0 ) {
+      cv::Mat miniImageLab;
+      resize(imageLab, miniImageLab, cv::Size( image.cols / zoom, image.rows / zoom ) );
+      miniImageLab.convertTo( floatLab, CV_32FC3 );
+   } else {
+      imageLab.convertTo( floatLab, CV_32FC3 );
+   }
 
    int K = colors;
 
@@ -148,7 +159,6 @@ performFastColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    cv::kmeans(points, K, labelsFlat, cv::TermCriteria( cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centersFloatLabC1);
    cv::Mat centersFloatLabC3 = centersFloatLabC1.reshape( 3, colors );
 
-   // Clumsy way to reconstruct the image from indexed format
    cv::Mat centersLab;
    centersFloatLabC3.convertTo( centersLab, CV_8UC3 );
    cv::Mat centers;
