@@ -6,6 +6,8 @@
 #include <string.h>
 #include <algorithm>
 
+constexpr bool FAST_QUANTIZATION = true;
+
 // The recipe of GIMP/Artistic Filters/Photocopy:
 // http://www.imagemagick.org/discourse-server/viewtopic.php?t=14441
 // * Mask radius = radius of pixel neighborhood for intensity comparison
@@ -126,12 +128,55 @@ performColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    return result;
 }
 
+// Doing the quantization at most over 500,000 pixels
+cv::Mat
+performFastColorQuantization( const cv::Mat& image, int blurRadius, int colors ) 
+{
+   cv::Mat gaussianBlur( image.size(), image.type() );
+   cv::GaussianBlur( image, gaussianBlur, cv::Size(2 * blurRadius + 1, 2 * blurRadius + 1), 0, 0 ); 
+  
+   cv::Mat lab( gaussianBlur.size(),  CV_8UC3 );
+   cv::cvtColor( gaussianBlur, lab, CV_BGR2Lab );
+
+   cv::Mat floatLab;
+   lab.convertTo( floatLab, CV_32FC3 );
+
+   int K = colors;
+
+   cv::Mat labelsFlat;
+   cv::Mat centersFloatLabC1;
+   cv::Mat points = floatLab.reshape(3, 1);
+   // TermCriteria has the default values from the doc
+   cv::kmeans(points, K, labelsFlat, cv::TermCriteria( cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centersFloatLabC1);
+   cv::Mat centersFloatLabC3 = centersFloatLabC1.reshape( 3, colors );
+
+   // Clumsy way to reconstruct the image from indexed format
+   cv::Mat labels = labelsFlat.reshape(1, image.rows );
+   cv::Mat centersLab;
+   centersFloatLabC3.convertTo( centersLab, CV_8UC3 );
+   cv::Mat centers;
+   cv::cvtColor( centersLab, centers, CV_Lab2BGR );
+   cv::Mat result( image.size(), CV_8UC3 );
+   for( int y=0; y < result.rows; y++) {
+      for( int x=0; x < result.cols; x++) {
+         unsigned char& label = labelsFlat.at<unsigned char>( x +  y * result.cols, 0 );
+         result.at<cv::Vec3b>( y, x )[0] = centers.at<cv::Vec3b>( label, 0 )[0];
+         result.at<cv::Vec3b>( y, x )[1] = centers.at<cv::Vec3b>( label, 0 )[1];
+         result.at<cv::Vec3b>( y, x )[2] = centers.at<cv::Vec3b>( label, 0 )[2];
+      }
+   }
+
+   return result;
+}
+
 // Facade for cartonization
 cv::Mat
 performCartoonization( const cv::Mat& image, int photocopyRadius, float photocopyC, float photocopyR, int colorRadius, int numberOfColors )
 {
    cv::Mat photocopyMask = performBinaryGimpPhotocopyMaskFilter( image, photocopyRadius, photocopyC, photocopyR );
-   cv::Mat result        = performColorQuantization( image, colorRadius, numberOfColors - 1 );
+   cv::Mat result        = FAST_QUANTIZATION
+                           ? performFastColorQuantization( image, colorRadius, numberOfColors - 1 )
+                           : performColorQuantization( image, colorRadius, numberOfColors - 1 );
 
    result.setTo( cv::Scalar( 0, 0, 0), photocopyMask ); 
    return result;
