@@ -5,6 +5,7 @@
 #include <string>
 #include <string.h>
 #include <algorithm>
+#include <climits>
 
 constexpr bool FAST_QUANTIZATION = true;
 
@@ -118,9 +119,7 @@ performColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    for( int y=0; y < result.rows; y++) {
       for( int x=0; x < result.cols; x++) {
          unsigned char& label = labelsFlat.at<unsigned char>( x +  y * result.cols, 0 );
-         result.at<cv::Vec3b>( y, x )[0] = centers.at<cv::Vec3b>( label, 0 )[0];
-         result.at<cv::Vec3b>( y, x )[1] = centers.at<cv::Vec3b>( label, 0 )[1];
-         result.at<cv::Vec3b>( y, x )[2] = centers.at<cv::Vec3b>( label, 0 )[2];
+         result.at<cv::Vec3b>( y, x ) = centers.at<cv::Vec3b>( bestCol, 0 );
       }
    }
 
@@ -157,10 +156,21 @@ performFastColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    cv::Mat result( image.size(), CV_8UC3 );
    for( int y=0; y < result.rows; y++) {
       for( int x=0; x < result.cols; x++) {
-         unsigned char& label = labelsFlat.at<unsigned char>( x +  y * result.cols, 0 );
-         result.at<cv::Vec3b>( y, x )[0] = centers.at<cv::Vec3b>( label, 0 )[0];
-         result.at<cv::Vec3b>( y, x )[1] = centers.at<cv::Vec3b>( label, 0 )[1];
-         result.at<cv::Vec3b>( y, x )[2] = centers.at<cv::Vec3b>( label, 0 )[2];
+         long bestDist = LONG_MAX;
+         int bestCol = 0;
+         // determining label
+         const cv::Vec3b& imgCoords = imageLab.at<cv::Vec3b>( y, x );
+         for ( int col = 0; col <  colors; ++ col ) {
+            const cv::Vec3b& colCoords = centersLab.at<cv::Vec3b>( col, 0 );
+            long dist = ( static_cast<long>( colCoords[0] ) - static_cast<long>( imgCoords[0] ) ) * ( static_cast<long>( colCoords[0] ) - static_cast<long>( imgCoords[0] ) ) +
+                        ( static_cast<long>( colCoords[1] ) - static_cast<long>( imgCoords[1] ) ) * ( static_cast<long>( colCoords[1] ) - static_cast<long>( imgCoords[1] ) ) +
+                        ( static_cast<long>( colCoords[2] ) - static_cast<long>( imgCoords[2] ) ) * ( static_cast<long>( colCoords[2] ) - static_cast<long>( imgCoords[2] ) );
+            if ( dist < bestDist ) {
+               bestCol = col;
+               bestDist = dist;
+            }
+         }
+         result.at<cv::Vec3b>( y, x ) = centers.at<cv::Vec3b>( bestCol, 0 );
       }
    }
 
