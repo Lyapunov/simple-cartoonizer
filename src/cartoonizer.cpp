@@ -94,11 +94,11 @@ performColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    cv::Mat gaussianBlur( image.size(), image.type() );
    cv::GaussianBlur( image, gaussianBlur, cv::Size(2 * blurRadius + 1, 2 * blurRadius + 1), 0, 0 ); 
   
-   cv::Mat lab( gaussianBlur.size(),  CV_8UC3 );
-   cv::cvtColor( gaussianBlur, lab, CV_BGR2Lab );
+   cv::Mat imageLab( gaussianBlur.size(),  CV_8UC3 );
+   cv::cvtColor( gaussianBlur, imageLab, CV_BGR2Lab );
 
    cv::Mat floatLab;
-   lab.convertTo( floatLab, CV_32FC3 );
+   imageLab.convertTo( floatLab, CV_32FC3 );
 
    int K = colors;
 
@@ -134,11 +134,11 @@ performFastColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    cv::Mat gaussianBlur( image.size(), image.type() );
    cv::GaussianBlur( image, gaussianBlur, cv::Size(2 * blurRadius + 1, 2 * blurRadius + 1), 0, 0 ); 
   
-   cv::Mat lab( gaussianBlur.size(),  CV_8UC3 );
-   cv::cvtColor( gaussianBlur, lab, CV_BGR2Lab );
+   cv::Mat imageLab( gaussianBlur.size(),  CV_8UC3 );
+   cv::cvtColor( gaussianBlur, imageLab, CV_BGR2Lab );
 
    cv::Mat floatLab;
-   lab.convertTo( floatLab, CV_32FC3 );
+   imageLab.convertTo( floatLab, CV_32FC3 );
 
    int K = colors;
 
