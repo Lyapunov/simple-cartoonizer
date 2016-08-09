@@ -110,7 +110,7 @@ performColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    cv::kmeans(points, K, labelsFlat, cv::TermCriteria( cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centersFloatLabC1);
    cv::Mat centersFloatLabC3 = centersFloatLabC1.reshape( 3, colors );
 
-   // Clumsy way to reconstruct the image from indexed format
+   // Reconstructing the image from indexed format
    cv::Mat centersLab;
    centersFloatLabC3.convertTo( centersLab, CV_8UC3 );
    cv::Mat centers;
@@ -158,7 +158,7 @@ performFastColorQuantization( const cv::Mat& image, int blurRadius, int colors )
       for( int x=0; x < result.cols; x++) {
          long bestDist = LONG_MAX;
          int bestCol = 0;
-         // determining label
+         // determining label, using lab
          const cv::Vec3b& imgCoords = imageLab.at<cv::Vec3b>( y, x );
          for ( int col = 0; col <  colors; ++ col ) {
             const cv::Vec3b& colCoords = centersLab.at<cv::Vec3b>( col, 0 );
@@ -170,6 +170,7 @@ performFastColorQuantization( const cv::Mat& image, int blurRadius, int colors )
                bestDist = dist;
             }
          }
+         // saving result, using ordinary colors
          result.at<cv::Vec3b>( y, x ) = centers.at<cv::Vec3b>( bestCol, 0 );
       }
    }
