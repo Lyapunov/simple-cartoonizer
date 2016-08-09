@@ -110,7 +110,6 @@ performColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    cv::Mat centersFloatLabC3 = centersFloatLabC1.reshape( 3, colors );
 
    // Clumsy way to reconstruct the image from indexed format
-   cv::Mat labels = labelsFlat.reshape(1, image.rows );
    cv::Mat centersLab;
    centersFloatLabC3.convertTo( centersLab, CV_8UC3 );
    cv::Mat centers;
@@ -151,7 +150,6 @@ performFastColorQuantization( const cv::Mat& image, int blurRadius, int colors )
    cv::Mat centersFloatLabC3 = centersFloatLabC1.reshape( 3, colors );
 
    // Clumsy way to reconstruct the image from indexed format
-   cv::Mat labels = labelsFlat.reshape(1, image.rows );
    cv::Mat centersLab;
    centersFloatLabC3.convertTo( centersLab, CV_8UC3 );
    cv::Mat centers;
